@@ -10,7 +10,8 @@ import {
   ShieldCheck,
   Search,
   Image as ImageIcon,
-  LockKeyhole
+  LockKeyhole,
+  ArrowLeft
 } from "lucide-react";
 
 type Product = {
@@ -30,27 +31,36 @@ export default function Home() {
   const [selected, setSelected] = useState<Product | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/products", { cache: "no-store" })
       .then(async (response) => {
-        if (!response.ok) throw new Error("Unable to load products");
+        if (!response.ok) {
+          throw new Error("Unable to load products");
+        }
         return response.json();
       })
       .then(setProducts)
-      .catch(() => setError("Products could not be loaded."));
+      .catch(() => setError("Products could not be loaded."))
+      .finally(() => setLoading(false));
   }, []);
 
   const filtered = products.filter((product) => {
     const matchCategory =
       filter === "All" || product.category === filter;
 
-    const query = search.toLowerCase();
+    const query = search.trim().toLowerCase();
 
-    const matchSearch =
-      product.name.toLowerCase().includes(query) ||
-      product.size.toLowerCase().includes(query) ||
-      product.option.toLowerCase().includes(query);
+    const searchableText = [
+      product.name,
+      product.category,
+      product.size,
+      product.option,
+      product.description
+    ].join(" ").toLowerCase();
+
+    const matchSearch = searchableText.includes(query);
 
     return matchCategory && matchSearch;
   });
@@ -59,12 +69,14 @@ export default function Home() {
     const message = [
       "Hello HI-TECH!",
       "",
-      "I am interested in:",
+      "I am interested in this product:",
       product.name,
+      `Category: ${product.category}`,
       `Size: ${product.size}`,
-      product.option,
+      `Type: ${product.option}`,
+      `Description: ${product.description || "Not available"}`,
       "",
-      "Please share price and details."
+      "Please share price and more details."
     ].join("\n");
 
     window.open(
@@ -76,6 +88,8 @@ export default function Home() {
 
   return (
     <main>
+      {/* NAVIGATION */}
+
       <nav className="navbar">
         <a href="#home" className="logo">
           HI<span>-</span>TECH
@@ -118,6 +132,8 @@ export default function Home() {
         </div>
       </nav>
 
+      {/* HERO */}
+
       <section className="hero" id="home">
         <div className="container hero-content">
           <span className="eyebrow">
@@ -125,7 +141,8 @@ export default function Home() {
           </span>
 
           <h1>
-            STRENGTH<br />
+            STRENGTH
+            <br />
             MEETS <span>STYLE.</span>
           </h1>
 
@@ -150,6 +167,8 @@ export default function Home() {
         </div>
       </section>
 
+      {/* PRODUCTS */}
+
       <section className="section" id="products">
         <div className="container">
           <span className="eyebrow">OUR COLLECTION</span>
@@ -159,9 +178,11 @@ export default function Home() {
           </h2>
 
           <p className="section-description">
-            Browse our original steel door and window
-            product photographs.
+            Explore our original steel door and window collection.
+            Find the right product for your project.
           </p>
+
+          {/* SEARCH AND FILTER */}
 
           <div className="product-controls">
             <div className="filters">
@@ -181,16 +202,35 @@ export default function Home() {
 
               <input
                 type="search"
-                placeholder="Search products..."
+                placeholder="Search name, size, type..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
+
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  aria-label="Clear search"
+                >
+                  <X size={17} />
+                </button>
+              )}
             </div>
+          </div>
+
+          <div className="results-count">
+            Showing {filtered.length} of {products.length} products
           </div>
 
           {error && (
             <p className="error-message">{error}</p>
           )}
+
+          {loading && (
+            <p className="loading-text">Loading products...</p>
+          )}
+
+          {/* PRODUCT GRID */}
 
           <div className="product-grid">
             {filtered.map((product) => (
@@ -198,7 +238,7 @@ export default function Home() {
                 <button
                   className="product-image"
                   onClick={() => setSelected(product)}
-                  aria-label={`View original photo of ${product.name}`}
+                  aria-label={`View ${product.name} details`}
                 >
                   {product.imageUrl ? (
                     <img
@@ -213,7 +253,7 @@ export default function Home() {
                   )}
 
                   <span className="photo-label">
-                    VIEW ORIGINAL PHOTO
+                    VIEW PRODUCT DETAILS
                   </span>
                 </button>
 
@@ -231,7 +271,7 @@ export default function Home() {
                     className="primary-btn full-btn"
                     onClick={() => setSelected(product)}
                   >
-                    View Original Photo
+                    View Details
                   </button>
 
                   <button
@@ -246,13 +286,15 @@ export default function Home() {
             ))}
           </div>
 
-          {filtered.length === 0 && !error && (
+          {filtered.length === 0 && !error && !loading && (
             <p className="empty-message">
-              No products found.
+              No products found. Try another search.
             </p>
           )}
         </div>
       </section>
+
+      {/* PRODUCT DETAILS */}
 
       {selected && (
         <div
@@ -260,19 +302,22 @@ export default function Home() {
           onClick={() => setSelected(null)}
         >
           <div
-            className="photo-modal-content"
+            className="photo-modal-content product-details-view"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               className="modal-close"
               onClick={() => setSelected(null)}
-              aria-label="Close photo"
+              aria-label="Close details"
             >
               <X />
             </button>
 
+            <span className="category-label">
+              {selected.category}
+            </span>
+
             <h2>{selected.name}</h2>
-            <p>{selected.size} · {selected.option}</p>
 
             {selected.imageUrl ? (
               <img
@@ -287,16 +332,58 @@ export default function Home() {
               </div>
             )}
 
+            <div className="details-information">
+              <h3>Product Information</h3>
+
+              <div className="detail-row">
+                <span>Product Name</span>
+                <strong>{selected.name}</strong>
+              </div>
+
+              <div className="detail-row">
+                <span>Category</span>
+                <strong>{selected.category}</strong>
+              </div>
+
+              <div className="detail-row">
+                <span>Size</span>
+                <strong>{selected.size}</strong>
+              </div>
+
+              <div className="detail-row">
+                <span>Type / Option</span>
+                <strong>{selected.option}</strong>
+              </div>
+
+              <div className="detail-description">
+                <h3>Description</h3>
+                <p>
+                  {selected.description ||
+                    "Product description is not available."}
+                </p>
+              </div>
+            </div>
+
             <button
               className="whatsapp-btn"
               onClick={() => whatsapp(selected)}
             >
               <MessageCircle size={18} />
-              Enquire on WhatsApp
+              Enquire About This Product
+            </button>
+
+            <button
+              className="back-products-btn"
+              onClick={() => setSelected(null)}
+            >
+              <ArrowLeft size={17} />
+              Back to Products
             </button>
           </div>
         </div>
       )}
+
+      {/* ABOUT */}
 
       <section className="section about-section" id="about">
         <div className="container">
@@ -334,6 +421,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* CONTACT */}
 
       <section className="section contact-section" id="contact">
         <div className="container">
@@ -373,6 +462,8 @@ export default function Home() {
         </div>
       </section>
 
+      {/* FOOTER */}
+
       <footer className="footer">
         <a href="/" className="logo">
           HI<span>-</span>TECH
@@ -383,6 +474,90 @@ export default function Home() {
           All Rights Reserved.
         </p>
       </footer>
+
+      {/* EXTRA STYLES */}
+
+      <style jsx>{`
+        .results-count {
+          margin: 14px 0;
+          font-size: 13px;
+          opacity: 0.7;
+        }
+
+        .search-box button {
+          border: 0;
+          background: transparent;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+        }
+
+        .product-details-view {
+          max-height: 90vh;
+          overflow-y: auto;
+          width: 100%;
+          max-width: 650px;
+          box-sizing: border-box;
+        }
+
+        .details-information {
+          margin: 20px 0;
+          text-align: left;
+        }
+
+        .details-information h3 {
+          margin-bottom: 14px;
+        }
+
+        .detail-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 15px;
+          padding: 12px 0;
+          border-bottom: 1px solid #ddd;
+        }
+
+        .detail-row span {
+          opacity: 0.7;
+        }
+
+        .detail-row strong {
+          text-align: right;
+        }
+
+        .detail-description {
+          padding: 15px 0;
+        }
+
+        .detail-description p {
+          line-height: 1.7;
+        }
+
+        .back-products-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          width: 100%;
+          margin-top: 10px;
+          padding: 12px;
+          border: 1px solid #ccc;
+          border-radius: 8px;
+          background: transparent;
+          cursor: pointer;
+          font-weight: 600;
+        }
+
+        @media (max-width: 500px) {
+          .product-details-view {
+            padding: 15px;
+          }
+
+          .detail-row {
+            font-size: 13px;
+          }
+        }
+      `}</style>
     </main>
   );
 }
