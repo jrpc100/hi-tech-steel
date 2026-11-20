@@ -6,17 +6,22 @@ import { products } from "../../../lib/products";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const BLOB_TOKEN = process.env.PUBLIC_BLOB_READ_WRITE_TOKEN;
+
 export async function GET() {
   try {
+    if (!BLOB_TOKEN) {
+      throw new Error("Public Blob token is missing");
+    }
+
     const result = await list({
-      prefix: "products/"
+      prefix: "products/",
+      token: BLOB_TOKEN
     });
 
     const items = products.map((product) => {
       const photo = result.blobs.find((blob) =>
-        blob.pathname.startsWith(
-          `products/${product.id}.`
-        )
+        blob.pathname.startsWith(`products/${product.id}.`)
       );
 
       return {
@@ -30,6 +35,7 @@ export async function GET() {
         "Cache-Control": "no-store"
       }
     });
+
   } catch (error) {
     console.error("Product loading error:", error);
 
