@@ -5,11 +5,12 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "HI-TECH | Steel Doors & Windows",
   description:
-    "Premium Steel Doors and Windows by HI-TECH, Koppam, Palakkad.",
+    "Premium steel doors and windows. HI-TECH, Koppam, Palakkad, Kerala.",
+  applicationName: "HI-TECH"
 };
 
 export default function RootLayout({
-  children,
+  children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
