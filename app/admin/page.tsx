@@ -7,7 +7,9 @@ import {
   Trash2,
   LogOut,
   Image as ImageIcon,
-  ExternalLink
+  ExternalLink,
+  LockKeyhole,
+  RefreshCw
 } from "lucide-react";
 
 type Product = {
@@ -16,6 +18,7 @@ type Product = {
   category: string;
   size: string;
   option: string;
+  description?: string;
   imageUrl: string | null;
 };
 
@@ -54,7 +57,7 @@ export default function AdminPage() {
           await loadProducts();
         }
       } catch {
-        setMessage("Unable to connect");
+        setMessage("Unable to connect. Please refresh.");
       }
     }
 
@@ -63,6 +66,7 @@ export default function AdminPage() {
 
   async function login(e: React.FormEvent) {
     e.preventDefault();
+
     setLoading(true);
     setMessage("");
 
@@ -85,8 +89,9 @@ export default function AdminPage() {
       setPassword("");
       await loadProducts();
       setLogged(true);
+      setMessage("");
     } catch {
-      setMessage("Connection error");
+      setMessage("Connection error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -94,6 +99,16 @@ export default function AdminPage() {
 
   async function uploadPhoto(id: number, file?: File) {
     if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setMessage("Only JPG, PNG and WEBP photos are allowed.");
+      return;
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+      setMessage("Photo must be smaller than 8 MB.");
+      return;
+    }
 
     setLoading(true);
     setMessage("Uploading photo...");
@@ -104,7 +119,8 @@ export default function AdminPage() {
       form.append("productId", String(id));
       form.append("file", file);
 
-      const response = await fetch("/api/admin/upload", {
+      // Correct API route
+      const response = await fetch("/api/upload", {
         method: "POST",
         body: form
       });
@@ -112,14 +128,15 @@ export default function AdminPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setMessage(data.error || "Upload failed");
+        setMessage(data.error || `Upload failed (${response.status})`);
         return;
       }
 
       await loadProducts();
       setMessage("Photo uploaded successfully!");
-    } catch {
-      setMessage("Upload failed");
+    } catch (error) {
+      console.error("Upload error:", error);
+      setMessage("Upload failed. Check your internet and Blob Storage settings.");
     } finally {
       setLoading(false);
     }
@@ -131,10 +148,11 @@ export default function AdminPage() {
     }
 
     setLoading(true);
-    setMessage("Deleting...");
+    setMessage("Deleting photo...");
 
     try {
-      const response = await fetch("/api/admin/upload", {
+      // Correct API route
+      const response = await fetch("/api/upload", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json"
@@ -153,21 +171,44 @@ export default function AdminPage() {
 
       await loadProducts();
       setMessage("Photo deleted successfully!");
+    } catch (error) {
+      console.error("Delete error:", error);
+      setMessage("Delete failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function refreshProducts() {
+    setLoading(true);
+    setMessage("Refreshing products...");
+
+    try {
+      await loadProducts();
+      setMessage("Products refreshed!");
     } catch {
-      setMessage("Delete failed");
+      setMessage("Unable to refresh products.");
     } finally {
       setLoading(false);
     }
   }
 
   async function logout() {
-    await fetch("/api/admin/logout", {
-      method: "POST"
-    });
+    setLoading(true);
 
-    setLogged(false);
-    setItems([]);
-    setMessage("Logged out");
+    try {
+      await fetch("/api/admin/logout", {
+        method: "POST"
+      });
+
+      setLogged(false);
+      setItems([]);
+      setMessage("Logged out successfully.");
+    } catch {
+      setMessage("Logout failed.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   const filtered = items.filter((product) =>
@@ -179,7 +220,7 @@ export default function AdminPage() {
       <main className="admin-page">
         <form className="login-card" onSubmit={login}>
           <div className="admin-icon">
-            <ImageIcon size={34} />
+            <LockKeyhole size={34} />
           </div>
 
           <h1>HI-TECH</h1>
@@ -216,11 +257,26 @@ export default function AdminPage() {
 
         <div className="admin-actions">
           <a href="/" className="admin-link">
-            <ExternalLink size={16} /> Website
+            <ExternalLink size={16} />
+            Website
           </a>
 
-          <button className="logout-btn" onClick={logout}>
-            <LogOut size={16} /> Logout
+          <button
+            className="admin-link"
+            onClick={refreshProducts}
+            disabled={loading}
+          >
+            <RefreshCw size={16} />
+            Refresh
+          </button>
+
+          <button
+            className="logout-btn"
+            onClick={logout}
+            disabled={loading}
+          >
+            <LogOut size={16} />
+            Logout
           </button>
         </div>
       </header>
@@ -230,10 +286,12 @@ export default function AdminPage() {
           <strong>{items.length}</strong>
           <span>Total Products</span>
         </div>
+
         <div>
           <strong>{items.filter(p => p.imageUrl).length}</strong>
           <span>Photos Uploaded</span>
         </div>
+
         <div>
           <strong>{items.filter(p => !p.imageUrl).length}</strong>
           <span>Photos Pending</span>
@@ -254,7 +312,9 @@ export default function AdminPage() {
       </div>
 
       {message && (
-        <div className="admin-message">{message}</div>
+        <div className="admin-message">
+          {message}
+        </div>
       )}
 
       {loading && (
@@ -271,7 +331,10 @@ export default function AdminPage() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <img src={product.imageUrl} alt={product.name} />
+                  <img
+                    src={product.imageUrl}
+                    alt={product.name}
+                  />
                 </a>
               ) : (
                 <div className="no-photo">
@@ -287,8 +350,13 @@ export default function AdminPage() {
               </span>
 
               <h3>{product.name}</h3>
+
               <p>Size: {product.size}</p>
               <p>{product.option}</p>
+
+              {product.description && (
+                <p>{product.description}</p>
+              )}
 
               <label className="upload-btn">
                 <Upload size={17} />
@@ -300,10 +368,12 @@ export default function AdminPage() {
                   disabled={loading}
                   hidden
                   onChange={(e) => {
-                    uploadPhoto(
-                      product.id,
-                      e.target.files?.[0]
-                    );
+                    const file = e.target.files?.[0];
+
+                    if (file) {
+                      uploadPhoto(product.id, file);
+                    }
+
                     e.currentTarget.value = "";
                   }}
                 />
@@ -323,6 +393,12 @@ export default function AdminPage() {
           </article>
         ))}
       </div>
+
+      {filtered.length === 0 && (
+        <p className="empty-message">
+          No products found.
+        </p>
+      )}
     </main>
   );
 }
