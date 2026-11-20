@@ -1,7 +1,7 @@
 
 import { list } from "@vercel/blob";
 import { NextResponse } from "next/server";
-import { products } from "@/lib/products";
+import { products } from "../../../lib/products";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
