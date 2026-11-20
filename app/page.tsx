@@ -38,9 +38,10 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState<Theme>("light");
 
-  // Load saved theme
+  // LOAD SAVED THEME
   useEffect(() => {
     const savedTheme = localStorage.getItem("hi-tech-theme");
+
     const initialTheme: Theme =
       savedTheme === "dark" ? "dark" : "light";
 
@@ -48,23 +49,25 @@ export default function Home() {
     document.documentElement.dataset.theme = initialTheme;
   }, []);
 
-  // Change and save theme
+  // CHANGE THEME
   function toggleTheme() {
     const newTheme: Theme =
       theme === "light" ? "dark" : "light";
 
     setTheme(newTheme);
     document.documentElement.dataset.theme = newTheme;
+
     localStorage.setItem("hi-tech-theme", newTheme);
   }
 
-  // Load products
+  // LOAD PRODUCTS
   useEffect(() => {
     fetch("/api/products", { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) {
           throw new Error("Unable to load products");
         }
+
         return response.json();
       })
       .then(setProducts)
@@ -72,6 +75,7 @@ export default function Home() {
       .finally(() => setLoading(false));
   }, []);
 
+  // SEARCH AND FILTER
   const filtered = products.filter((product) => {
     const matchCategory =
       filter === "All" || product.category === filter;
@@ -91,6 +95,7 @@ export default function Home() {
     return matchCategory && matchSearch;
   });
 
+  // WHATSAPP ENQUIRY
   function whatsapp(product: Product) {
     const message = [
       "Hello HI-TECH!",
@@ -114,6 +119,7 @@ export default function Home() {
 
   return (
     <main>
+
       {/* NAVIGATION */}
 
       <nav className="navbar">
@@ -147,27 +153,6 @@ export default function Home() {
             Contact
           </a>
 
-          {/* THEME TOGGLE */}
-
-          <button
-            className="theme-toggle"
-            onClick={toggleTheme}
-            aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-            title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-          >
-            {theme === "light" ? (
-              <>
-                <Moon size={17} />
-                <span>Dark Mode</span>
-              </>
-            ) : (
-              <>
-                <Sun size={17} />
-                <span>Light Mode</span>
-              </>
-            )}
-          </button>
-
           <a
             href="/admin"
             className="admin-nav-btn"
@@ -178,6 +163,29 @@ export default function Home() {
           </a>
         </div>
       </nav>
+
+      {/* FLOATING THEME BUTTON - TOP RIGHT */}
+
+      <button
+        className="theme-toggle"
+        onClick={toggleTheme}
+        aria-label={
+          theme === "light"
+            ? "Switch to dark mode"
+            : "Switch to light mode"
+        }
+        title={
+          theme === "light"
+            ? "Dark Mode"
+            : "Light Mode"
+        }
+      >
+        {theme === "light" ? (
+          <Moon size={21} />
+        ) : (
+          <Sun size={21} />
+        )}
+      </button>
 
       {/* HERO */}
 
@@ -525,28 +533,6 @@ export default function Home() {
       {/* EXTRA STYLES */}
 
       <style jsx>{`
-        .theme-toggle {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 10px 13px;
-          border: 1px solid var(--border);
-          border-radius: 8px;
-          background: var(--panel);
-          color: var(--text);
-          font-size: 13px;
-          font-weight: 700;
-          cursor: pointer;
-          white-space: nowrap;
-          transition: .2s;
-        }
-
-        .theme-toggle:hover {
-          border-color: var(--gold);
-          color: var(--gold);
-        }
-
         .results-count {
           margin: 14px 0;
           font-size: 13px;
@@ -617,12 +603,6 @@ export default function Home() {
           color: var(--text);
           cursor: pointer;
           font-weight: 600;
-        }
-
-        @media (max-width: 800px) {
-          .theme-toggle {
-            width: fit-content;
-          }
         }
 
         @media (max-width: 500px) {
