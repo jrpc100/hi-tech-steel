@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { put, list, del } from "@vercel/blob";
 
@@ -19,6 +20,7 @@ function isAuthorized(request: NextRequest) {
   );
 }
 
+// UPLOAD / REPLACE PHOTO
 export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json(
@@ -33,6 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     const form = await request.formData();
+
     const id = Number(form.get("productId"));
     const file = form.get("file");
 
@@ -91,18 +94,24 @@ export async function POST(request: NextRequest) {
       }
     );
 
+    // Remove older photos for this product
     const existing = await list({
-      prefix: `products/${id}.`,
+      prefix: "products/",
       token: TOKEN
     });
 
-    const oldBlobs = existing.blobs.filter(
-      (item) => item.url !== blob.url
-    );
+    const oldPhotos = existing.blobs.filter((item) => {
+      const filename = item.pathname.split("/").pop() || "";
 
-    if (oldBlobs.length > 0) {
+      return (
+        new RegExp(`^${id}(?:[-.]|$)`).test(filename) &&
+        item.url !== blob.url
+      );
+    });
+
+    if (oldPhotos.length > 0) {
       await del(
-        oldBlobs.map((item) => item.url),
+        oldPhotos.map((item) => item.url),
         { token: TOKEN }
       );
     }
@@ -122,6 +131,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// DELETE PHOTO
 export async function DELETE(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json(
@@ -135,8 +145,8 @@ export async function DELETE(request: NextRequest) {
       throw new Error("Public Blob token is missing");
     }
 
-    const { productId } = await request.json();
-    const id = Number(productId);
+    const body = await request.json();
+    const id = Number(body.productId);
 
     const products = await getProducts();
 
@@ -150,27 +160,60 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const existing = await list({
-      prefix: `products/${id}.`,
+    // Find all photos belonging to this product
+    const result = await list({
+      prefix: "products/",
       token: TOKEN
     });
 
-    if (existing.blobs.length > 0) {
-      await del(
-        existing.blobs.map((blob) => blob.url),
-        { token: TOKEN }
+    const matchingPhotos = result.blobs.filter((blob) => {
+      const filename = blob.pathname.split("/").pop() || "";
+
+      return new RegExp(
+        `^${id}(?:[-.]|$)`
+      ).test(filename);
+    });
+
+    if (matchingPhotos.length === 0) {
+      return NextResponse.json({
+        success: true,
+        deleted: 0
+      });
+    }
+
+    // Delete all matching photos
+    await del(
+      matchingPhotos.map((blob) => blob.url),
+      { token: TOKEN }
+    );
+
+    // Verify deletion
+    const verify = await list({
+      prefix: "products/",
+      token: TOKEN
+    });
+
+    const stillExists = verify.blobs.some((blob) =>
+      matchingPhotos.some((old) => old.url === blob.url)
+    );
+
+    if (stillExists) {
+      return NextResponse.json(
+        { error: "Photo still exists in Blob Storage" },
+        { status: 500 }
       );
     }
 
     return NextResponse.json({
-      success: true
+      success: true,
+      deleted: matchingPhotos.length
     });
 
   } catch (error) {
-    console.error("Delete photo error:", error);
+    console.error("Photo delete error:", error);
 
     return NextResponse.json(
-      { error: "Delete failed" },
+      { error: "Photo deletion failed" },
       { status: 500 }
     );
   }
