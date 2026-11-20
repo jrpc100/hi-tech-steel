@@ -20,9 +20,23 @@ export async function GET() {
     });
 
     const items = products.map((product) => {
-      const photo = result.blobs.find((blob) =>
-        blob.pathname.startsWith(`products/${product.id}.`)
+      // Match product ID without accidentally matching ID 1 to ID 10
+      const matchingPhotos = result.blobs.filter((blob) => {
+        const filename = blob.pathname.split("/").pop() || "";
+
+        return new RegExp(
+          `^${product.id}(?:[-.]|$)`
+        ).test(filename);
+      });
+
+      // Use the latest uploaded photo
+      matchingPhotos.sort(
+        (a, b) =>
+          new Date(b.uploadedAt).getTime() -
+          new Date(a.uploadedAt).getTime()
       );
+
+      const photo = matchingPhotos[0];
 
       return {
         ...product,
