@@ -4,8 +4,8 @@ import { put, list, del } from "@vercel/blob";
 import {
   verifyAdminSession,
   COOKIE_NAME
-} from "@/lib/auth";
-import { products } from "@/lib/products";
+} from "../../../lib/auth";
+import { products } from "../../../lib/products";
 
 export const runtime = "nodejs";
 
@@ -29,7 +29,8 @@ export async function POST(request: NextRequest) {
     const id = Number(form.get("productId"));
     const file = form.get("file");
 
-    if (!products.some((product) => product.id === id)) {
+    if (!Number.isInteger(id) ||
+        !products.some((product) => product.id === id)) {
       return NextResponse.json(
         { error: "Invalid product" },
         { status: 400 }
@@ -69,22 +70,28 @@ export async function POST(request: NextRequest) {
       "image/webp": "webp"
     };
 
-    const pathname =
-      `products/${id}.${extension[file.type]}`;
+    // Upload new image first, preserving the old one if upload fails.
+    const blob = await put(
+      `products/${id}.${extension[file.type]}`,
+      file,
+      {
+        access: "public",
+        addRandomSuffix: true
+      }
+    );
 
+    // Delete previous images only after successful upload.
     const existing = await list({
       prefix: `products/${id}.`
     });
 
-    if (existing.blobs.length > 0) {
-      await del(existing.blobs.map((blob) => blob.url));
-    }
+    const oldBlobs = existing.blobs.filter(
+      (item) => item.url !== blob.url
+    );
 
-    const blob = await put(pathname, file, {
-      access: "public",
-      addRandomSuffix: false,
-      allowOverwrite: true
-    });
+    if (oldBlobs.length > 0) {
+      await del(oldBlobs.map((item) => item.url));
+    }
 
     return NextResponse.json({
       success: true,
@@ -110,10 +117,10 @@ export async function DELETE(request: NextRequest) {
 
   try {
     const { productId } = await request.json();
-
     const id = Number(productId);
 
-    if (!products.some((product) => product.id === id)) {
+    if (!Number.isInteger(id) ||
+        !products.some((product) => product.id === id)) {
       return NextResponse.json(
         { error: "Invalid product" },
         { status: 400 }
