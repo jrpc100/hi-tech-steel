@@ -5,70 +5,64 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
-const products = [
-  {
-    id: "door-standard",
-    name: "Standard Steel Door Frame",
-    category: "DOOR FRAMES",
-    type: "Standard Design",
-    description: "A standard steel door-frame design for residential and commercial projects.",
-    material: "Iron / Tata Steel",
-    gsm: "120 GSM galvanized option",
-    dimensions: "Custom dimensions available",
-  },
-  {
-    id: "door-heavy",
-    name: "Heavy Duty Door Frame",
-    category: "DOOR FRAMES",
-    type: "Heavy Duty Design",
-    description: "A sample heavier-profile steel door frame.",
-    material: "Iron / Tata Steel",
-    gsm: "Confirm GSM and finish",
-    dimensions: "Custom dimensions available",
-  },
-  {
-    id: "door-galvanized",
-    name: "Galvanized Steel Door Frame",
-    category: "DOOR FRAMES",
-    type: "Galvanized Design",
-    description: "A steel door-frame concept with a galvanized finish.",
-    material: "Tata Galvanized Steel",
-    gsm: "120 GSM option",
-    dimensions: "Custom dimensions available",
-  },
-  {
-    id: "window-2track",
-    name: "2-Track Window Frame",
-    category: "WINDOW FRAMES",
-    type: "2-Track Design",
-    description: "A sample two-track steel window-frame design.",
-    material: "Iron / Tata Steel",
-    gsm: "120 GSM galvanized option",
-    dimensions: "Custom dimensions available",
-  },
-  {
-    id: "window-3track",
-    name: "3-Track Window Frame",
-    category: "WINDOW FRAMES",
-    type: "3-Track Design",
-    description: "A sample three-track steel window-frame design.",
-    material: "Iron / Tata Steel",
-    gsm: "120 GSM galvanized option",
-    dimensions: "Custom dimensions available",
-  },
-  {
-    id: "window-grill",
-    name: "Window Frame with Grill",
-    category: "WINDOW FRAMES",
-    type: "Grill Type Design",
-    description: "A sample steel window-frame design with internal grill bars.",
-    material: "Iron / Tata Steel",
-    gsm: "120 GSM galvanized option",
-    dimensions: "Custom dimensions available",
-  },
+type Product = {
+  id: string;
+  name: string;
+  category: string;
+  type: string;
+  description: string;
+  dimensions: string;
+};
+
+const products: Product[] = [
+  ...[
+    "4 × 3",
+    "4 × 2.5",
+    "9 × 4",
+    "6 × 4",
+    "5 × 3",
+  ].flatMap((size, index) => [
+    {
+      id: `door-${index}-with`,
+      name: `${size} Door Frame – With Bottom Step`,
+      category: "DOOR FRAMES",
+      type: `${size} · With Bottom Step`,
+      description: "Steel door frame with bottom step (Kurumbadi).",
+      dimensions: size,
+    },
+    {
+      id: `door-${index}-without`,
+      name: `${size} Door Frame – Without Bottom Step`,
+      category: "DOOR FRAMES",
+      type: `${size} · Without Bottom Step`,
+      description: "Steel door frame without bottom step.",
+      dimensions: size,
+    },
+  ]),
+  ...[
+    "4 × 3",
+    "4 × 2.5",
+  ].flatMap((size, index) => [
+    {
+      id: `window-${index}-with`,
+      name: `${size} Window Frame – With Poli`,
+      category: "WINDOW FRAMES",
+      type: `${size} · With Poli`,
+      description: "Window frame with openable and closable shutter arrangement.",
+      dimensions: size,
+    },
+    {
+      id: `window-${index}-without`,
+      name: `${size} Window Frame – Without Poli`,
+      category: "WINDOW FRAMES",
+      type: `${size} · Hinges Only`,
+      description: "Customer provides the poli. HI-TECH provides and fits steel hinges.",
+      dimensions: size,
+    },
+  ]),
 ];
 
-function ModelViewer({ type }: { type: string }) {
+function ModelViewer({ product }: { product: Product }) {
   const mountRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -84,16 +78,14 @@ function ModelViewer({ type }: { type: string }) {
       0.1,
       100
     );
-
     camera.position.set(4, 3, 6);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.shadowMap.enabled = true;
     container.appendChild(renderer.domElement);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+    scene.add(new THREE.AmbientLight(0xffffff, 1.6));
 
     const light = new THREE.DirectionalLight(0xffffff, 3);
     light.position.set(4, 6, 5);
@@ -101,13 +93,12 @@ function ModelViewer({ type }: { type: string }) {
 
     const group = new THREE.Group();
 
-    const isWindow = type.startsWith("window");
-    const isHeavy = type === "door-heavy";
-    const isGalvanized = type === "door-galvanized";
-    const isGrill = type === "window-grill";
+    const isWindow = product.category === "WINDOW FRAMES";
+    const hasBottom = product.id.endsWith("-with");
+    const hasPoli = product.id.startsWith("window") && hasBottom;
 
     const metal = new THREE.MeshStandardMaterial({
-      color: isGalvanized ? "#c5d0d8" : "#aeb7c0",
+      color: "#c5d0d8",
       metalness: 0.85,
       roughness: 0.25,
     });
@@ -124,85 +115,76 @@ function ModelViewer({ type }: { type: string }) {
       z: number,
       w: number,
       h: number,
-      d: number
+      d: number,
+      material = metal
     ) {
       const mesh = new THREE.Mesh(
         new THREE.BoxGeometry(w, h, d),
-        metal
+        material
       );
       mesh.position.set(x, y, z);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
       group.add(mesh);
     }
 
     const width = isWindow ? 2.8 : 2.2;
-    const height = isWindow ? 2.5 : 4;
-    const thickness = isHeavy ? 0.23 : 0.16;
+    const height = 4;
+    const thickness = 0.16;
 
-    // Outer frame
+    // Main frame
     bar(-width / 2, 0, 0, thickness, height, thickness);
     bar(width / 2, 0, 0, thickness, height, thickness);
     bar(0, height / 2, 0, width + thickness, thickness, thickness);
 
-    if (isWindow) {
+    // Bottom frame
+    if (isWindow || hasBottom) {
       bar(0, -height / 2, 0, width + thickness, thickness, thickness);
+    }
 
-      const trackCount = type === "window-3track" ? 3 : 2;
-
-      for (let i = 0; i < trackCount; i++) {
-        const rail = new THREE.Mesh(
-          new THREE.BoxGeometry(width - 0.12, 0.07, 0.07),
-          darkMetal
-        );
-        rail.position.set(
-          0,
-          -height / 2 + 0.16 + i * 0.12,
-          -0.12 + i * 0.16
-        );
-        group.add(rail);
+    if (isWindow) {
+      // Window shutter / poli sample
+      if (hasPoli) {
+        bar(-width / 4, 0, 0.12, 0.06, height - 0.3, 0.08, darkMetal);
+        bar(width / 4, 0, 0.12, 0.06, height - 0.3, 0.08, darkMetal);
+        bar(0, 0, 0.12, width / 2, 0.06, 0.08, darkMetal);
       }
 
-      if (isGrill) {
-        for (let i = 1; i <= 4; i++) {
-          bar(
-            -width / 2 + (width / 5) * i,
-            0,
-            0.08,
-            0.055,
-            height - 0.2,
-            0.08
-          );
-        }
+      // Window tracks
+      for (let i = 0; i < 2; i++) {
+        bar(
+          0,
+          -height / 2 + 0.15,
+          -0.1 + i * 0.16,
+          width - 0.12,
+          0.07,
+          0.07,
+          darkMetal
+        );
+      }
 
-        for (let i = 1; i <= 2; i++) {
-          bar(
-            0,
-            -height / 2 + (height / 3) * i,
-            0.08,
-            width - 0.2,
-            0.055,
-            0.08
-          );
-        }
+      // Hinges
+      for (let i = 0; i < 3; i++) {
+        bar(
+          -width / 2 - 0.04,
+          -1 + i,
+          0.08,
+          0.12,
+          0.22,
+          0.12,
+          darkMetal
+        );
       }
     }
 
-    // Steel profile depth
-    const sideDepth = new THREE.Mesh(
-      new THREE.BoxGeometry(0.07, height, 0.48),
-      darkMetal
-    );
-    sideDepth.position.set(width / 2 - 0.04, 0, -0.22);
-    group.add(sideDepth);
+    // Frame depth
+    bar(width / 2 - 0.04, 0, -0.22, 0.07, height, 0.48, darkMetal);
+    bar(0, height / 2 - 0.04, -0.22, width, 0.07, 0.48, darkMetal);
 
-    const topDepth = new THREE.Mesh(
-      new THREE.BoxGeometry(width + thickness, 0.07, 0.48),
-      darkMetal
-    );
-    topDepth.position.set(0, height / 2 - 0.04, -0.22);
-    group.add(topDepth);
+    // Door locking sample
+    if (!isWindow) {
+      bar(width / 2 - 0.12, 0, 0.12, 0.08, 0.35, 0.08, darkMetal);
+    }
 
+    // Floor
     const floor = new THREE.Mesh(
       new THREE.BoxGeometry(8, 0.08, 8),
       new THREE.MeshStandardMaterial({ color: "#252b32" })
@@ -218,6 +200,7 @@ function ModelViewer({ type }: { type: string }) {
     controls.maxDistance = 12;
 
     const resize = () => {
+      if (!container.clientWidth || !container.clientHeight) return;
       camera.aspect = container.clientWidth / container.clientHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(container.clientWidth, container.clientHeight);
@@ -227,11 +210,11 @@ function ModelViewer({ type }: { type: string }) {
 
     let animationId = 0;
 
-    const animate = () => {
+    function animate() {
       animationId = requestAnimationFrame(animate);
       controls.update();
       renderer.render(scene, camera);
-    };
+    }
 
     animate();
 
@@ -248,31 +231,26 @@ function ModelViewer({ type }: { type: string }) {
       scene.traverse((object) => {
         if (object instanceof THREE.Mesh) {
           object.geometry.dispose();
-          if (Array.isArray(object.material)) {
-            object.material.forEach((m) => m.dispose());
-          } else {
-            object.material.dispose();
-          }
+          const materials = Array.isArray(object.material)
+            ? object.material
+            : [object.material];
+          materials.forEach((material) => material.dispose());
         }
       });
     };
-  }, [type]);
+  }, [product]);
 
   return (
     <div className="viewer">
-      <div className="viewer-label">
-        INTERACTIVE 3D MODEL · SAMPLE
-      </div>
+      <div className="viewer-label">INTERACTIVE 3D MODEL · SAMPLE</div>
       <div ref={mountRef} className="model-canvas" />
-      <div className="viewer-hint">
-        Drag to rotate · Pinch to zoom
-      </div>
+      <div className="viewer-hint">Drag to rotate · Pinch to zoom</div>
     </div>
   );
 }
 
 export default function Home() {
-  const [selected, setSelected] = useState("door-standard");
+  const [selected, setSelected] = useState("door-0-with");
   const [category, setCategory] = useState("DOOR FRAMES");
 
   const product =
@@ -309,9 +287,7 @@ export default function Home() {
 
       <section className="hero">
         <div className="hero-content">
-          <p className="eyebrow">
-            PRECISION · STRENGTH · QUALITY
-          </p>
+          <p className="eyebrow">PRECISION · STRENGTH · QUALITY</p>
           <h1>
             BUILT STRONG.
             <br />
@@ -337,8 +313,8 @@ export default function Home() {
             STEEL FRAME <span>CATALOGUE</span>
           </h2>
           <p>
-            Choose a category and select a design to explore
-            its interactive 3D model.
+            Select your frame size and variation to explore
+            its sample 3D model.
           </p>
         </div>
 
@@ -368,7 +344,7 @@ export default function Home() {
                   : "design-card"
               }
             >
-              <span>{item.type}</span>
+              <span>{item.category}</span>
               <strong>{item.name}</strong>
               <small>
                 {selected === item.id ? "SELECTED ✓" : "VIEW MODEL"}
@@ -379,7 +355,7 @@ export default function Home() {
         </div>
 
         <div className="product-layout">
-          <ModelViewer type={selected} />
+          <ModelViewer product={product} />
 
           <div className="product-info">
             <p className="eyebrow">
@@ -390,16 +366,36 @@ export default function Home() {
 
             <div className="specs">
               <div>
-                <span>MATERIAL</span>
-                <strong>{product.material}</strong>
+                <span>FRAME MATERIAL</span>
+                <strong>16 kg Tata Galvano · 120 GSM GI Sheet</strong>
               </div>
               <div>
-                <span>GALVANIZATION</span>
-                <strong>{product.gsm}</strong>
+                <span>GRILL</span>
+                <strong>Customer's Choice</strong>
               </div>
               <div>
-                <span>DIMENSIONS</span>
+                <span>PRIMER</span>
+                <strong>Epoxy Primer</strong>
+              </div>
+              <div>
+                <span>CUTTING</span>
+                <strong>Laser Cutting</strong>
+              </div>
+              <div>
+                <span>LOCKING SYSTEM</span>
+                <strong>Included</strong>
+              </div>
+              <div>
+                <span>HINGES</span>
+                <strong>Steel Hinges</strong>
+              </div>
+              <div>
+                <span>SELECTED SIZE</span>
                 <strong>{product.dimensions}</strong>
+              </div>
+              <div>
+                <span>VARIATION</span>
+                <strong>{product.type}</strong>
               </div>
             </div>
 
@@ -408,8 +404,8 @@ export default function Home() {
             </a>
 
             <p className="small-note">
-              Illustrative sample model only. Confirm exact
-              section, dimensions and finish with HI-TECH.
+              3D models are illustrative samples. Confirm exact
+              section and dimensions with HI-TECH.
             </p>
           </div>
         </div>
