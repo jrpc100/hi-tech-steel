@@ -11,7 +11,9 @@ import {
   Search,
   Image as ImageIcon,
   LockKeyhole,
-  ArrowLeft
+  ArrowLeft,
+  Sun,
+  Moon
 } from "lucide-react";
 
 type Product = {
@@ -24,6 +26,8 @@ type Product = {
   imageUrl: string | null;
 };
 
+type Theme = "light" | "dark";
+
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filter, setFilter] = useState("All");
@@ -32,7 +36,29 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [theme, setTheme] = useState<Theme>("light");
 
+  // Load saved theme
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("hi-tech-theme");
+    const initialTheme: Theme =
+      savedTheme === "dark" ? "dark" : "light";
+
+    setTheme(initialTheme);
+    document.documentElement.dataset.theme = initialTheme;
+  }, []);
+
+  // Change and save theme
+  function toggleTheme() {
+    const newTheme: Theme =
+      theme === "light" ? "dark" : "light";
+
+    setTheme(newTheme);
+    document.documentElement.dataset.theme = newTheme;
+    localStorage.setItem("hi-tech-theme", newTheme);
+  }
+
+  // Load products
   useEffect(() => {
     fetch("/api/products", { cache: "no-store" })
       .then(async (response) => {
@@ -120,6 +146,27 @@ export default function Home() {
           <a href="#contact" onClick={() => setMenuOpen(false)}>
             Contact
           </a>
+
+          {/* THEME TOGGLE */}
+
+          <button
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+            title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+          >
+            {theme === "light" ? (
+              <>
+                <Moon size={17} />
+                <span>Dark Mode</span>
+              </>
+            ) : (
+              <>
+                <Sun size={17} />
+                <span>Light Mode</span>
+              </>
+            )}
+          </button>
 
           <a
             href="/admin"
@@ -478,6 +525,28 @@ export default function Home() {
       {/* EXTRA STYLES */}
 
       <style jsx>{`
+        .theme-toggle {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 10px 13px;
+          border: 1px solid var(--border);
+          border-radius: 8px;
+          background: var(--panel);
+          color: var(--text);
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: .2s;
+        }
+
+        .theme-toggle:hover {
+          border-color: var(--gold);
+          color: var(--gold);
+        }
+
         .results-count {
           margin: 14px 0;
           font-size: 13px;
@@ -487,6 +556,7 @@ export default function Home() {
         .search-box button {
           border: 0;
           background: transparent;
+          color: var(--text);
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -514,7 +584,7 @@ export default function Home() {
           justify-content: space-between;
           gap: 15px;
           padding: 12px 0;
-          border-bottom: 1px solid #ddd;
+          border-bottom: 1px solid var(--border);
         }
 
         .detail-row span {
@@ -541,11 +611,18 @@ export default function Home() {
           width: 100%;
           margin-top: 10px;
           padding: 12px;
-          border: 1px solid #ccc;
+          border: 1px solid var(--border);
           border-radius: 8px;
-          background: transparent;
+          background: var(--panel);
+          color: var(--text);
           cursor: pointer;
           font-weight: 600;
+        }
+
+        @media (max-width: 800px) {
+          .theme-toggle {
+            width: fit-content;
+          }
         }
 
         @media (max-width: 500px) {
