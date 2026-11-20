@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "HI-TECH | Steel Door & Window Frames",
+  title: "HI-TECH | Steel Doors & Windows",
   description:
-    "Premium steel door frames and window frames from HI-TECH, Koppam, Palakkad, Kerala.",
+    "Premium Steel Doors and Windows by HI-TECH, Koppam, Palakkad.",
 };
 
 export default function RootLayout({
