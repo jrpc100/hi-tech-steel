@@ -1,26 +1,26 @@
-
 import { list } from "@vercel/blob";
 import { NextResponse } from "next/server";
-import { products } from "../../../lib/products";
+import { getProducts } from "../../../lib/product-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const BLOB_TOKEN = process.env.PUBLIC_BLOB_READ_WRITE_TOKEN;
+const TOKEN = process.env.PUBLIC_BLOB_READ_WRITE_TOKEN;
 
 export async function GET() {
   try {
-    if (!BLOB_TOKEN) {
+    if (!TOKEN) {
       throw new Error("Public Blob token is missing");
     }
 
+    const products = await getProducts();
+
     const result = await list({
       prefix: "products/",
-      token: BLOB_TOKEN
+      token: TOKEN
     });
 
     const items = products.map((product) => {
-      // Match product ID without accidentally matching ID 1 to ID 10
       const matchingPhotos = result.blobs.filter((blob) => {
         const filename = blob.pathname.split("/").pop() || "";
 
@@ -29,18 +29,15 @@ export async function GET() {
         ).test(filename);
       });
 
-      // Use the latest uploaded photo
       matchingPhotos.sort(
         (a, b) =>
           new Date(b.uploadedAt).getTime() -
           new Date(a.uploadedAt).getTime()
       );
 
-      const photo = matchingPhotos[0];
-
       return {
         ...product,
-        imageUrl: photo?.url || null
+        imageUrl: matchingPhotos[0]?.url || null
       };
     });
 
