@@ -1,7 +1,7 @@
 
 {
   "name": "hi-tech-website",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,17 +9,16 @@
     "start": "next start"
   },
   "dependencies": {
+    "@vercel/blob": "^1.1.1",
+    "lucide-react": "^0.468.0",
     "next": "^15.2.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "three": "^0.174.0",
-    "lucide-react": "^0.468.0"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@types/three": "^0.174.0",
     "typescript": "^5.7.0"
   }
 }
