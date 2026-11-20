@@ -10,61 +10,61 @@ const products = [
     id: "door-standard",
     name: "Standard Steel Door Frame",
     category: "DOOR FRAMES",
-    type: "Standard",
-    description: "A simple rectangular steel door-frame concept for everyday building projects.",
+    type: "Standard Design",
+    description: "A standard steel door-frame design for residential and commercial projects.",
     material: "Iron / Tata Steel",
-    gsm: "Galvanized option: 120 GSM",
-    dimensions: "Custom dimensions on enquiry",
+    gsm: "120 GSM galvanized option",
+    dimensions: "Custom dimensions available",
   },
   {
     id: "door-heavy",
     name: "Heavy Duty Door Frame",
     category: "DOOR FRAMES",
-    type: "Heavy Duty",
-    description: "A sample heavier-profile door-frame concept with a wider steel section.",
+    type: "Heavy Duty Design",
+    description: "A sample heavier-profile steel door frame.",
     material: "Iron / Tata Steel",
-    gsm: "Confirm finish and GSM with HI-TECH",
-    dimensions: "Custom dimensions on enquiry",
+    gsm: "Confirm GSM and finish",
+    dimensions: "Custom dimensions available",
   },
   {
     id: "door-galvanized",
     name: "Galvanized Steel Door Frame",
     category: "DOOR FRAMES",
-    type: "Galvanized",
-    description: "A door-frame concept representing a galvanized steel finish.",
+    type: "Galvanized Design",
+    description: "A steel door-frame concept with a galvanized finish.",
     material: "Tata Galvanized Steel",
     gsm: "120 GSM option",
-    dimensions: "Custom dimensions on enquiry",
+    dimensions: "Custom dimensions available",
   },
   {
     id: "window-2track",
     name: "2-Track Window Frame",
     category: "WINDOW FRAMES",
-    type: "2-Track",
-    description: "A sample two-track window-frame layout.",
+    type: "2-Track Design",
+    description: "A sample two-track steel window-frame design.",
     material: "Iron / Tata Steel",
-    gsm: "Galvanized option: 120 GSM",
-    dimensions: "Custom dimensions on enquiry",
+    gsm: "120 GSM galvanized option",
+    dimensions: "Custom dimensions available",
   },
   {
     id: "window-3track",
     name: "3-Track Window Frame",
     category: "WINDOW FRAMES",
-    type: "3-Track",
-    description: "A sample three-track window-frame layout.",
+    type: "3-Track Design",
+    description: "A sample three-track steel window-frame design.",
     material: "Iron / Tata Steel",
-    gsm: "Galvanized option: 120 GSM",
-    dimensions: "Custom dimensions on enquiry",
+    gsm: "120 GSM galvanized option",
+    dimensions: "Custom dimensions available",
   },
   {
     id: "window-grill",
     name: "Window Frame with Grill",
     category: "WINDOW FRAMES",
-    type: "Grill Type",
-    description: "A sample window-frame concept with simple internal grill bars.",
+    type: "Grill Type Design",
+    description: "A sample steel window-frame design with internal grill bars.",
     material: "Iron / Tata Steel",
-    gsm: "Galvanized option: 120 GSM",
-    dimensions: "Custom dimensions on enquiry",
+    gsm: "120 GSM galvanized option",
+    dimensions: "Custom dimensions available",
   },
 ];
 
@@ -109,7 +109,7 @@ function ModelViewer({ type }: { type: string }) {
     const metal = new THREE.MeshStandardMaterial({
       color: isGalvanized ? "#c5d0d8" : "#aeb7c0",
       metalness: 0.85,
-      roughness: isGalvanized ? 0.32 : 0.25,
+      roughness: 0.25,
     });
 
     const darkMetal = new THREE.MeshStandardMaterial({
@@ -130,7 +130,6 @@ function ModelViewer({ type }: { type: string }) {
         new THREE.BoxGeometry(w, h, d),
         metal
       );
-
       mesh.position.set(x, y, z);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
@@ -141,7 +140,7 @@ function ModelViewer({ type }: { type: string }) {
     const height = isWindow ? 2.5 : 4;
     const thickness = isHeavy ? 0.23 : 0.16;
 
-    // Outer steel frame
+    // Outer frame
     bar(-width / 2, 0, 0, thickness, height, thickness);
     bar(width / 2, 0, 0, thickness, height, thickness);
     bar(0, height / 2, 0, width + thickness, thickness, thickness);
@@ -149,27 +148,21 @@ function ModelViewer({ type }: { type: string }) {
     if (isWindow) {
       bar(0, -height / 2, 0, width + thickness, thickness, thickness);
 
-      // Window track channels
       const trackCount = type === "window-3track" ? 3 : 2;
 
       for (let i = 0; i < trackCount; i++) {
-        const z = -0.12 + i * 0.16;
-
         const rail = new THREE.Mesh(
           new THREE.BoxGeometry(width - 0.12, 0.07, 0.07),
           darkMetal
         );
-
         rail.position.set(
           0,
           -height / 2 + 0.16 + i * 0.12,
-          z
+          -0.12 + i * 0.16
         );
-
         group.add(rail);
       }
 
-      // Window grill
       if (isGrill) {
         for (let i = 1; i <= 4; i++) {
           bar(
@@ -195,12 +188,11 @@ function ModelViewer({ type }: { type: string }) {
       }
     }
 
-    // Folded steel profile
+    // Steel profile depth
     const sideDepth = new THREE.Mesh(
       new THREE.BoxGeometry(0.07, height, 0.48),
       darkMetal
     );
-
     sideDepth.position.set(width / 2 - 0.04, 0, -0.22);
     group.add(sideDepth);
 
@@ -208,7 +200,6 @@ function ModelViewer({ type }: { type: string }) {
       new THREE.BoxGeometry(width + thickness, 0.07, 0.48),
       darkMetal
     );
-
     topDepth.position.set(0, height / 2 - 0.04, -0.22);
     group.add(topDepth);
 
@@ -216,33 +207,20 @@ function ModelViewer({ type }: { type: string }) {
       new THREE.BoxGeometry(8, 0.08, 8),
       new THREE.MeshStandardMaterial({ color: "#252b32" })
     );
-
     floor.position.y = -height / 2 - 0.12;
     scene.add(floor);
     scene.add(group);
 
-    const controls = new OrbitControls(
-      camera,
-      renderer.domElement
-    );
-
+    const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
     controls.minDistance = 3;
     controls.maxDistance = 12;
 
     const resize = () => {
-      if (!container) return;
-
-      camera.aspect =
-        container.clientWidth / container.clientHeight;
-
+      camera.aspect = container.clientWidth / container.clientHeight;
       camera.updateProjectionMatrix();
-
-      renderer.setSize(
-        container.clientWidth,
-        container.clientHeight
-      );
+      renderer.setSize(container.clientWidth, container.clientHeight);
     };
 
     window.addEventListener("resize", resize);
@@ -270,7 +248,6 @@ function ModelViewer({ type }: { type: string }) {
       scene.traverse((object) => {
         if (object instanceof THREE.Mesh) {
           object.geometry.dispose();
-
           if (Array.isArray(object.material)) {
             object.material.forEach((m) => m.dispose());
           } else {
@@ -286,9 +263,7 @@ function ModelViewer({ type }: { type: string }) {
       <div className="viewer-label">
         INTERACTIVE 3D MODEL · SAMPLE
       </div>
-
       <div ref={mountRef} className="model-canvas" />
-
       <div className="viewer-hint">
         Drag to rotate · Pinch to zoom
       </div>
@@ -313,11 +288,7 @@ export default function Home() {
 
   function changeCategory(next: string) {
     setCategory(next);
-
-    const first = products.find(
-      (p) => p.category === next
-    );
-
+    const first = products.find((p) => p.category === next);
     if (first) setSelected(first.id);
   }
 
@@ -331,7 +302,6 @@ export default function Home() {
             <small>STEEL SOLUTIONS</small>
           </span>
         </a>
-
         <a className="nav-contact" href={whatsapp}>
           GET QUOTE ↗
         </a>
@@ -342,23 +312,19 @@ export default function Home() {
           <p className="eyebrow">
             PRECISION · STRENGTH · QUALITY
           </p>
-
           <h1>
             BUILT STRONG.
             <br />
             <span>BUILT TO LAST.</span>
           </h1>
-
           <p className="hero-text">
             Premium steel door and window frames.
             Made for strength, designed for durability.
           </p>
-
           <a href="#products" className="primary-btn">
             EXPLORE PRODUCTS ↘
           </a>
         </div>
-
         <div className="hero-mark">
           HT<span>.</span>
         </div>
@@ -367,13 +333,11 @@ export default function Home() {
       <section id="products" className="products-section">
         <div className="section-heading">
           <p className="eyebrow">OUR COLLECTION</p>
-
           <h2>
             STEEL FRAME <span>CATALOGUE</span>
           </h2>
-
           <p>
-            Select a category, choose a design and explore
+            Choose a category and select a design to explore
             its interactive 3D model.
           </p>
         </div>
@@ -381,22 +345,13 @@ export default function Home() {
         <div className="product-tabs">
           <button
             onClick={() => changeCategory("DOOR FRAMES")}
-            className={
-              category === "DOOR FRAMES"
-                ? "tab active"
-                : "tab"
-            }
+            className={category === "DOOR FRAMES" ? "tab active" : "tab"}
           >
             DOOR FRAMES
           </button>
-
           <button
             onClick={() => changeCategory("WINDOW FRAMES")}
-            className={
-              category === "WINDOW FRAMES"
-                ? "tab active"
-                : "tab"
-            }
+            className={category === "WINDOW FRAMES" ? "tab active" : "tab"}
           >
             WINDOW FRAMES
           </button>
@@ -415,11 +370,9 @@ export default function Home() {
             >
               <span>{item.type}</span>
               <strong>{item.name}</strong>
-
               <small>
-                {selected === item.id
-                  ? "SELECTED ✓"
-                  : "VIEW MODEL ↗"}
+                {selected === item.id ? "SELECTED ✓" : "VIEW MODEL"}
+                <span className="card-arrow">→</span>
               </small>
             </button>
           ))}
@@ -430,37 +383,27 @@ export default function Home() {
 
           <div className="product-info">
             <p className="eyebrow">
-              HI-TECH / {product.category} /{" "}
-              {product.type.toUpperCase()}
+              HI-TECH / {product.category} / {product.type.toUpperCase()}
             </p>
-
             <h2>{product.name}</h2>
-
-            <p className="description">
-              {product.description}
-            </p>
+            <p className="description">{product.description}</p>
 
             <div className="specs">
               <div>
                 <span>MATERIAL</span>
                 <strong>{product.material}</strong>
               </div>
-
               <div>
                 <span>GALVANIZATION</span>
                 <strong>{product.gsm}</strong>
               </div>
-
               <div>
                 <span>DIMENSIONS</span>
                 <strong>{product.dimensions}</strong>
               </div>
             </div>
 
-            <a
-              href={whatsapp}
-              className="primary-btn quote-btn"
-            >
+            <a href={whatsapp} className="primary-btn quote-btn">
               ENQUIRE ON WHATSAPP ↗
             </a>
 
@@ -474,9 +417,7 @@ export default function Home() {
 
       <section className="about">
         <p className="eyebrow">WHY HI-TECH?</p>
-
         <h2>STRENGTH IN EVERY FRAME.</h2>
-
         <p>
           Quality steel frame solutions for homes and
           commercial projects. Built with attention to
@@ -488,13 +429,8 @@ export default function Home() {
         <div className="footer-brand">
           HI-TECH <span>STEEL SOLUTIONS</span>
         </div>
-
         <p>Koppam, Palakkad, Kerala</p>
-
-        <a href="tel:+919745046924">
-          +91 97450 46924
-        </a>
-
+        <a href="tel:+919745046924">+91 97450 46924</a>
         <p className="copyright">
           © 2026 HI-TECH. All rights reserved.
         </p>
