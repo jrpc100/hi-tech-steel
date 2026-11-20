@@ -1,16 +1,17 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { put, list, del } from "@vercel/blob";
+
 import {
   verifyAdminSession,
   COOKIE_NAME
 } from "../../../lib/auth";
-import { products } from "../../../lib/products";
+
+import { getProducts } from "../../../lib/product-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const BLOB_TOKEN = process.env.PUBLIC_BLOB_READ_WRITE_TOKEN;
+const TOKEN = process.env.PUBLIC_BLOB_READ_WRITE_TOKEN;
 
 function isAuthorized(request: NextRequest) {
   return verifyAdminSession(
@@ -27,13 +28,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    if (!BLOB_TOKEN) {
+    if (!TOKEN) {
       throw new Error("Public Blob token is missing");
     }
 
     const form = await request.formData();
     const id = Number(form.get("productId"));
     const file = form.get("file");
+
+    const products = await getProducts();
 
     if (
       !Number.isInteger(id) ||
@@ -84,13 +87,13 @@ export async function POST(request: NextRequest) {
       {
         access: "public",
         addRandomSuffix: true,
-        token: BLOB_TOKEN
+        token: TOKEN
       }
     );
 
     const existing = await list({
       prefix: `products/${id}.`,
-      token: BLOB_TOKEN
+      token: TOKEN
     });
 
     const oldBlobs = existing.blobs.filter(
@@ -100,7 +103,7 @@ export async function POST(request: NextRequest) {
     if (oldBlobs.length > 0) {
       await del(
         oldBlobs.map((item) => item.url),
-        { token: BLOB_TOKEN }
+        { token: TOKEN }
       );
     }
 
@@ -128,12 +131,14 @@ export async function DELETE(request: NextRequest) {
   }
 
   try {
-    if (!BLOB_TOKEN) {
+    if (!TOKEN) {
       throw new Error("Public Blob token is missing");
     }
 
     const { productId } = await request.json();
     const id = Number(productId);
+
+    const products = await getProducts();
 
     if (
       !Number.isInteger(id) ||
@@ -147,13 +152,13 @@ export async function DELETE(request: NextRequest) {
 
     const existing = await list({
       prefix: `products/${id}.`,
-      token: BLOB_TOKEN
+      token: TOKEN
     });
 
     if (existing.blobs.length > 0) {
       await del(
         existing.blobs.map((blob) => blob.url),
-        { token: BLOB_TOKEN }
+        { token: TOKEN }
       );
     }
 
@@ -162,7 +167,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error("Delete error:", error);
+    console.error("Delete photo error:", error);
 
     return NextResponse.json(
       { error: "Delete failed" },
