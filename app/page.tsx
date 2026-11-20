@@ -9,7 +9,8 @@ import {
   MessageCircle,
   ShieldCheck,
   Search,
-  Image as ImageIcon
+  Image as ImageIcon,
+  LockKeyhole
 } from "lucide-react";
 
 type Product = {
@@ -90,10 +91,30 @@ export default function Home() {
         </button>
 
         <div className={`navlinks ${menuOpen ? "open" : ""}`}>
-          <a href="#home" onClick={() => setMenuOpen(false)}>Home</a>
-          <a href="#products" onClick={() => setMenuOpen(false)}>Products</a>
-          <a href="#about" onClick={() => setMenuOpen(false)}>About</a>
-          <a href="#contact" onClick={() => setMenuOpen(false)}>Contact</a>
+          <a href="#home" onClick={() => setMenuOpen(false)}>
+            Home
+          </a>
+
+          <a href="#products" onClick={() => setMenuOpen(false)}>
+            Products
+          </a>
+
+          <a href="#about" onClick={() => setMenuOpen(false)}>
+            About
+          </a>
+
+          <a href="#contact" onClick={() => setMenuOpen(false)}>
+            Contact
+          </a>
+
+          <a
+            href="/admin"
+            className="admin-nav-btn"
+            onClick={() => setMenuOpen(false)}
+          >
+            <LockKeyhole size={16} />
+            Admin
+          </a>
         </div>
       </nav>
 
@@ -157,6 +178,7 @@ export default function Home() {
 
             <div className="search-box">
               <Search size={18} />
+
               <input
                 type="search"
                 placeholder="Search products..."
@@ -166,7 +188,9 @@ export default function Home() {
             </div>
           </div>
 
-          {error && <p className="error-message">{error}</p>}
+          {error && (
+            <p className="error-message">{error}</p>
+          )}
 
           <div className="product-grid">
             {filtered.map((product) => (
