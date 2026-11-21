@@ -12,6 +12,10 @@ type Item = {
   rate: string;
 };
 
+type OCRResult = {
+  generated_text?: string;
+};
+
 const blankItem = (): Item => ({
   code: "",
   spec: "",
@@ -36,6 +40,11 @@ export default function EstimatePage() {
   const [items, setItems] = useState<Item[]>([blankItem()]);
   const [photo, setPhoto] = useState("");
   const [photoName, setPhotoName] = useState("");
+
+  const [ocrText, setOcrText] = useState("");
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState("");
+  const [ocrError, setOcrError] = useState("");
 
   useEffect(() => {
     fetch("/api/admin/session", { cache: "no-store" })
@@ -98,6 +107,144 @@ export default function EstimatePage() {
 
     setPhoto(URL.createObjectURL(file));
     setPhotoName(file.name);
+    setOcrText("");
+    setOcrError("");
+    setOcrProgress("");
+  }
+
+  async function readHandwriting() {
+    if (!photo) {
+      alert("Please upload a handwritten bill photo first.");
+      return;
+    }
+
+    setOcrLoading(true);
+    setOcrError("");
+    setOcrText("");
+    setOcrProgress("Loading handwriting recognition model...");
+
+    try {
+      const { pipeline } = await import("@huggingface/transformers");
+
+      const recognizer = await pipeline(
+        "image-to-text",
+        "Xenova/trocr-small-handwritten",
+        {
+          dtype: "q8",
+        }
+      );
+
+      setOcrProgress("Preparing image...");
+
+      const image = new Image();
+
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error("Could not load image."));
+        image.src = photo;
+      });
+
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+
+      if (!context) {
+        throw new Error("Image processing is not supported.");
+      }
+
+      const width = image.naturalWidth;
+      const height = image.naturalHeight;
+
+      if (!width || !height) {
+        throw new Error("Invalid image.");
+      }
+
+      // Split the bill into horizontal sections.
+      // TrOCR is a line-recognition model, so results may be imperfect.
+      const sectionCount = Math.min(12, Math.max(4, Math.ceil(height / 180)));
+      const sectionHeight = Math.ceil(height / sectionCount);
+      const results: string[] = [];
+
+      canvas.width = width;
+      canvas.height = sectionHeight;
+
+      for (let i = 0; i < sectionCount; i++) {
+        const y = i * sectionHeight;
+        const currentHeight = Math.min(sectionHeight, height - y);
+
+        if (currentHeight <= 0) continue;
+
+        canvas.height = currentHeight;
+        context.clearRect(0, 0, width, currentHeight);
+        context.drawImage(
+          image,
+          0,
+          y,
+          width,
+          currentHeight,
+          0,
+          0,
+          width,
+          currentHeight
+        );
+
+        setOcrProgress(
+          `Reading section ${i + 1} of ${sectionCount}...`
+        );
+
+        const result = (await recognizer(
+          canvas.toDataURL("image/png")
+        )) as OCRResult[];
+
+        const line = result
+          ?.map((entry) => entry.generated_text || "")
+          .join(" ")
+          .trim();
+
+        if (line) results.push(line);
+      }
+
+      const extracted = results.join("\n").trim();
+
+      if (!extracted) {
+        setOcrError(
+          "No readable text found. Try a clearer, brighter photo."
+        );
+      } else {
+        setOcrText(extracted);
+        setOcrProgress("Reading complete. Please verify the text.");
+      }
+    } catch (error) {
+      console.error(error);
+      setOcrError(
+        "OCR failed. Check your internet connection and try again. The first model download may take time."
+      );
+    } finally {
+      setOcrLoading(false);
+    }
+  }
+
+  function addOCRLineAsItem() {
+    const lines = ocrText
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (!lines.length) {
+      alert("No OCR text available.");
+      return;
+    }
+
+    setItems((old) => [
+      ...old,
+      ...lines.map((line) => ({
+        ...blankItem(),
+        code: line,
+      })),
+    ]);
+
+    alert(
+      "OCR lines added to Item / Code. Please edit each row and enter the correct details, quantity and rate."
+    );
   }
 
   if (checking) {
@@ -116,8 +263,8 @@ export default function EstimatePage() {
       <section className="upload-panel no-print">
         <h1>Smart Estimate Generator</h1>
         <p>
-          Upload your handwritten bill photo as a reference.
-          Enter and verify the details in the estimate below.
+          Upload a handwritten bill photo. The free handwriting
+          recognition model will try to read the writing.
         </p>
 
         <label className="upload-button">
@@ -132,7 +279,7 @@ export default function EstimatePage() {
           />
         </label>
 
-        {photoName && <p>{photoName}</p>}
+        {photoName && <p>Selected: {photoName}</p>}
 
         {photo && (
           <img
@@ -140,6 +287,41 @@ export default function EstimatePage() {
             alt="Original handwritten bill"
             className="source-photo"
           />
+        )}
+
+        {photo && (
+          <button
+            className="ocr-button"
+            onClick={readHandwriting}
+            disabled={ocrLoading}
+          >
+            {ocrLoading ? "Reading handwriting..." : "Read Handwriting (Free AI)"}
+          </button>
+        )}
+
+        {ocrProgress && <p className="ocr-status">{ocrProgress}</p>}
+
+        {ocrError && <p className="ocr-error">{ocrError}</p>}
+
+        {ocrText !== "" && (
+          <div className="ocr-result">
+            <h3>Recognized Text — Edit and Verify</h3>
+            <p>
+              Check spelling, measurements and numbers carefully.
+              Recognition may not be accurate.
+            </p>
+
+            <textarea
+              value={ocrText}
+              onChange={(e) => setOcrText(e.target.value)}
+              rows={9}
+              placeholder="Recognized handwriting appears here..."
+            />
+
+            <button onClick={addOCRLineAsItem}>
+              Add OCR Lines to Estimate Items
+            </button>
+          </div>
         )}
       </section>
 
@@ -325,6 +507,7 @@ export default function EstimatePage() {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          gap: 10px;
         }
 
         .toolbar a {
@@ -332,7 +515,8 @@ export default function EstimatePage() {
           font-weight: bold;
         }
 
-        button, .upload-button {
+        button,
+        .upload-button {
           background: #1769e8;
           color: white;
           border: 0;
@@ -340,6 +524,11 @@ export default function EstimatePage() {
           border-radius: 7px;
           cursor: pointer;
           font-weight: bold;
+        }
+
+        button:disabled {
+          opacity: 0.6;
+          cursor: wait;
         }
 
         .upload-panel {
@@ -370,6 +559,47 @@ export default function EstimatePage() {
           max-height: 300px;
           object-fit: contain;
           margin-top: 12px;
+        }
+
+        .ocr-button {
+          display: block;
+          margin-top: 14px;
+        }
+
+        .ocr-status {
+          color: #1769e8 !important;
+          font-weight: bold;
+        }
+
+        .ocr-error {
+          color: #c62828 !important;
+          font-weight: bold;
+        }
+
+        .ocr-result {
+          margin-top: 18px;
+          padding: 14px;
+          border: 1px solid #dce4ee;
+          border-radius: 9px;
+          background: #f8faff;
+        }
+
+        .ocr-result h3 {
+          margin: 0 0 8px;
+          color: #263f7d;
+        }
+
+        .ocr-result textarea {
+          width: 100%;
+          box-sizing: border-box;
+          padding: 12px;
+          border: 1px solid #cbd5e1;
+          border-radius: 7px;
+          font: inherit;
+          resize: vertical;
+          margin: 8px 0 12px;
+          color: #14243b;
+          background: white;
         }
 
         .paper {
@@ -550,26 +780,65 @@ export default function EstimatePage() {
         }
 
         @media(max-width: 650px) {
-          .estimate-shell { padding: 9px; }
-          .paper { padding: 20px 12px; }
-          .brand h1 { font-size: 19px; }
-          .customer-line { flex-direction: column; }
-          .spec-grid { grid-template-columns: 1fr; }
-          table { min-width: 720px; }
+          .estimate-shell {
+            padding: 9px;
+          }
+
+          .paper {
+            padding: 20px 12px;
+          }
+
+          .brand h1 {
+            font-size: 19px;
+          }
+
+          .customer-line {
+            flex-direction: column;
+          }
+
+          .spec-grid {
+            grid-template-columns: 1fr;
+          }
+
+          table {
+            min-width: 720px;
+          }
+
+          .toolbar {
+            flex-wrap: wrap;
+          }
         }
 
         @media print {
-          @page { size: A4 portrait; margin: 12mm; }
-          body { background: white !important; }
-          .estimate-shell { padding: 0; background: white; }
-          .no-print { display: none !important; }
+          @page {
+            size: A4 portrait;
+            margin: 12mm;
+          }
+
+          body {
+            background: white !important;
+          }
+
+          .estimate-shell {
+            padding: 0;
+            background: white;
+          }
+
+          .no-print {
+            display: none !important;
+          }
+
           .paper {
             max-width: none;
             min-height: 0;
             padding: 0;
             box-shadow: none;
           }
-          th, .estimate-tag, .spec-box, .balance {
+
+          th,
+          .estimate-tag,
+          .spec-box,
+          .balance {
             print-color-adjust: exact;
             -webkit-print-color-adjust: exact;
           }
