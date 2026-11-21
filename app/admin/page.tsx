@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,7 +14,8 @@ import {
   Plus,
   Pencil,
   X,
-  Save
+  Save,
+  FileText
 } from "lucide-react";
 
 type Product = {
@@ -397,6 +399,11 @@ export default function AdminPage() {
             Website
           </a>
 
+          <a href="/admin/estimate" className="admin-link">
+            <FileText size={16} />
+            Create Estimate
+          </a>
+
           <button
             className="admin-link"
             onClick={refreshProducts}
@@ -685,6 +692,21 @@ export default function AdminPage() {
           flex-wrap: wrap;
         }
 
+        .admin-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .admin-link {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          text-decoration: none;
+        }
+
         .add-product-btn,
         .edit-product-btn,
         .save-product-btn,
@@ -808,6 +830,10 @@ export default function AdminPage() {
 
           .product-editor {
             padding: 14px;
+          }
+
+          .admin-actions {
+            width: 100%;
           }
         }
       `}</style>
